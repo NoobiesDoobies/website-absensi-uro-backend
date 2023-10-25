@@ -9,7 +9,11 @@ const meetingSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   createdAt: { type: Date, default: new Date(), ref: "User" },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
 });
 
 const Meeting = mongoose.model("Meeting", meetingSchema);
