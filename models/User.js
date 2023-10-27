@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
   password: { type: String, required: true, minlength: 8 },
   createdAt: { type: Date, default: new Date() },
   role: {
@@ -24,8 +25,10 @@ const userSchema = new mongoose.Schema({
     ],
   },
   generation: { type: Number, required: true },
-  meetingAttended: [{ type: mongoose.Schema.Types.ObjectId, ref: "Meeting" }],
+  meetingsAttended: [{ type: mongoose.Schema.Types.ObjectId, ref: "Meeting" }],
 });
+
+userSchema.plugin(uniqueValidator);
 
 const User = mongoose.model("User", userSchema);
 

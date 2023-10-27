@@ -1,7 +1,8 @@
 const app = require("express")();
 const bodyParser = require("body-parser");
-const userRouter = require("./routes/api-user-routes.js");
-const meetingRouter = require("./routes/api-meeting-routes.js");
+const apiUserRouter = require("./routes/api-user-routes.js");
+const apiMeetingRouter = require("./routes/api-meeting-routes.js");
+const userRouter = require("./routes/user-routes.js");
 const mongoose = require("mongoose");
 const HttpError = require('./models/http-error');
 
@@ -9,8 +10,15 @@ const port = 5000;
 
 app.use(bodyParser.json());
 
-app.use("/api/users", userRouter);
-app.use("/api/meetings", meetingRouter);
+app.use("/user", userRouter);
+app.use("/api/users", apiUserRouter);
+app.use("/api/meetings", apiMeetingRouter);
+
+// Handle unsupported routes
+app.use((req, res, next) => {
+  const error = new HttpError('Could not find this route.', 404);
+  throw error;
+});
 
 // Error handler middleware
 app.use((error, req, res, next) => {
