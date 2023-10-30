@@ -4,11 +4,22 @@ const apiUserRouter = require("./routes/api-user-routes.js");
 const apiMeetingRouter = require("./routes/api-meeting-routes.js");
 const userRouter = require("./routes/user-routes.js");
 const mongoose = require("mongoose");
-const HttpError = require('./models/http-error');
+const HttpError = require("./models/http-error");
 
 const port = 5000;
 
 app.use(bodyParser.json());
+
+// Handle CORS error
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  ); // Allow these headers
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
+  next();
+});
 
 app.use("/user", userRouter);
 app.use("/api/users", apiUserRouter);
@@ -16,7 +27,7 @@ app.use("/api/meetings", apiMeetingRouter);
 
 // Handle unsupported routes
 app.use((req, res, next) => {
-  const error = new HttpError('Could not find this route.', 404);
+  const error = new HttpError("Could not find this route.", 404);
   throw error;
 });
 

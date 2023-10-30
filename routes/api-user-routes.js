@@ -8,7 +8,7 @@ router.get("/:uid", userController.getUserById);
 router.get("/", userController.getUsers);
 
 router.post(
-  "/",
+  "/signup",
   [
     check("name").not().isEmpty(),
     check("email")
@@ -20,6 +20,19 @@ router.post(
   ],
   userController.createUser
 );
+
+router.post(
+  "/login",
+  [
+    check("email")
+      .normalizeEmail() // Test@testcom => test@testcom
+      .isEmail(),
+    check("password").isLength({ min: 6 }),
+  ],
+  (req, res)=>{
+    res.send("login")
+  }
+)
 
 router.patch("/attend/:uid", userController.attendMeeting);
 
