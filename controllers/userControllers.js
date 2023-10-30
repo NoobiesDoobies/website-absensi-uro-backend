@@ -17,7 +17,7 @@ const getUsers = async (req, res, next) => {
 };
 
 const createUser = async (req, res, next) => {
-  console.log(req.body)
+  console.log(req.body);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(
@@ -221,7 +221,6 @@ const attendMeeting = async (req, res, next) => {
     return next(error);
   }
 
-
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
@@ -259,7 +258,10 @@ const login = async (req, res, next) => {
     return next(err);
   }
 
-  res.json({ message: "Logged in!" });
+  res.status(201).json({
+    message: "User created!",
+    user: existingUser.toObject({ getters: true }),
+  });
 };
 
 exports.getUsers = getUsers;

@@ -29,9 +29,7 @@ router.post(
       .isEmail(),
     check("password").isLength({ min: 6 }),
   ],
-  (req, res)=>{
-    res.send("login")
-  }
+  userController.login
 )
 
 router.patch("/attend/:uid", userController.attendMeeting);
