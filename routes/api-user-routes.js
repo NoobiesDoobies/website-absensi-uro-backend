@@ -18,7 +18,7 @@ router.post(
     check("position").not().isEmpty(),
     check("generation").not().isEmpty(),
   ],
-  userController.createUser
+  userController.signup
 );
 
 router.post(
@@ -30,7 +30,7 @@ router.post(
     check("password").isLength({ min: 6 }),
   ],
   userController.login
-)
+);
 
 router.patch("/attend/:uid", userController.attendMeeting);
 
@@ -43,7 +43,6 @@ router.patch(
   ],
   userController.updateUserById
 );
-
 
 router.delete("/:uid", userController.deleteUserById);
 

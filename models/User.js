@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema({
     enum: [
       "Ketua",
       "Wakil Ketua",
+      "Manpro R1",
+      "Manpro R2",
       "Kepala Divisi Mekanik",
       "Kepala Divisi Kontrol",
       "Kru Mekanik",

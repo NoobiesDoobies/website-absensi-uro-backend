@@ -3,6 +3,8 @@ const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const Meeting = require("../models/Meeting");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const getUsers = async (req, res, next) => {
   let users;
@@ -16,8 +18,7 @@ const getUsers = async (req, res, next) => {
   res.json({ users: users.map((user) => user.toObject({ getters: true })) });
 };
 
-const createUser = async (req, res, next) => {
-  console.log(req.body);
+const signup = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(
@@ -50,14 +51,27 @@ const createUser = async (req, res, next) => {
     return next(error);
   }
 
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch (err) {
+    const error = new HttpError(
+      "Could not create user, please try again.",
+      500
+    );
+    return next(error);
+  }
+
   const createdUser = new User({
     name,
     email,
-    password,
+    password: hashedPassword,
     position,
     generation,
     role,
   });
+
+  console.log(createdUser);
 
   try {
     await createdUser.save();
@@ -65,9 +79,29 @@ const createUser = async (req, res, next) => {
     const error = new HttpError(err.message, 500);
     return next(error);
   }
+
+  let token;
+  try {
+    token = jwt.sign(
+      {
+        userId: createdUser._id,
+        email: createdUser.email,
+        isAdmin: createdUser.role === "admin",
+      },
+      "KEY_SECRET",
+      { expiresIn: "1h" }
+    );
+  } catch (err) {
+    const error = new HttpError(`Sign up failed, please try again later`, 500);
+    return next(error);
+  }
+
   res.status(201).json({
     message: "User created!",
-    user: createdUser.toObject({ getters: true }),
+    userId: createdUser.id,
+    email: createdUser.email,
+    token: token,
+    isAdmin: createdUser.role === "admin",
   });
 };
 
@@ -98,7 +132,6 @@ const getMeetingsAttendedByUserId = async (req, res, next) => {
 
 const getUserById = async (req, res, next) => {
   const id = req.params.uid;
-  console.log(id);
   let user;
 
   // Try to fetch user by id
@@ -185,7 +218,7 @@ const deleteUserById = async (req, res, next) => {
 };
 
 const attendMeeting = async (req, res, next) => {
-  const userId = req.params.uid;
+  const { userId } = req.body;
 
   let user;
   try {
@@ -246,26 +279,50 @@ const login = async (req, res, next) => {
   try {
     existingUser = await User.findOne({ email: email });
   } catch (err) {
-    const error = new HttpError(
-      `Loggin in failed, please try again later`,
-      500
-    );
+    const error = new HttpError(`Login in failed, please try again later`, 500);
     return next(error);
   }
 
-  if (!existingUser || existingUser.password !== password) {
+  let isValidPassword = false;
+  try {
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
+  } catch (err) {
+    const error = new HttpError(`Login in failed, please try again later`, 500);
+    return next(error);
+  }
+
+  if (!existingUser || !isValidPassword) {
     const err = new HttpError("Invalid credentials, could not log you in", 401);
     return next(err);
   }
 
+  let token;
+  try {
+    token = jwt.sign(
+      {
+        userId: existingUser._id,
+        email: existingUser.email,
+        isAdmin: existingUser.role === "admin",
+      },
+      "KEY_SECRET",
+      { expiresIn: "1h" }
+    );
+  } catch (err) {
+    const error = new HttpError(`Login in failed, please try again later`, 500);
+    return next(error);
+  }
+
   res.status(201).json({
-    message: "User created!",
-    user: existingUser.toObject({ getters: true }),
+    message: "Logged In!",
+    userId: existingUser.id,
+    email: existingUser.email,
+    token: token,
+    isAdmin: existingUser.role === "admin",
   });
 };
 
 exports.getUsers = getUsers;
-exports.createUser = createUser;
+exports.signup = signup;
 exports.getUserById = getUserById;
 exports.updateUserById = updateUserById;
 exports.deleteUserById = deleteUserById;
