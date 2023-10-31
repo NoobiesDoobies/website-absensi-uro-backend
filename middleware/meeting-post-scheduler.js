@@ -38,17 +38,24 @@ function convertToCronSchedule(day, hour, minute) {
 }
 
 module.exports = async (req, res, next) => {
-  const { division, day, hour, minute, userId, isJustOnce, dateEnd } = req.body;
+  const { division, day, hour, minute, userId } = req.body;
+  let { dateEnd, isJustOnce } = req.body;
+  isJustOnce = isJustOnce === "true" ? true : false;
+  dateEnd = new Date(dateEnd);
+ 
+
   if (!isJustOnce) {
     const schedule = convertToCronSchedule(day, hour, minute);
-    cron.schedule(schedule, async () => {
+    const task = cron.schedule(schedule, async () => {
+        console.log("every second")
       try {
-        console.log("Running a task every 5 seconds");
+
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
           date: new Date(),
         });
+
         await newMeeting.save();
       } catch (err) {
         console.log(err);
@@ -56,11 +63,17 @@ module.exports = async (req, res, next) => {
         return next(error);
       }
     });
+
+    const currentDate = new Date();
+    setTimeout(() => {
+      console.log("timeout")
+      task.stop()
+    }, 5000)
   } else {
     const schedule = convertToCronSchedule(day, hour, minute);
     const task = cron.schedule(schedule, async () => {
       try {
-        console.log("Running a task every 5 seconds");
+        console.log("Running a task every seconds");
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
@@ -68,16 +81,20 @@ module.exports = async (req, res, next) => {
         });
         await newMeeting.save();
         
-        task.stop();
       } catch (err) {
         console.log(err);
         const error = new HttpError(err.message, 500);
-        task.stop();
-        
         return next(error);
       }
     });
+
+    setTimeout(() => {
+        console.log("timeout")
+        task.stop()
+      }, 5000)
+
   }
+
 
   res.status(200).json({
     message: "Meeting scheduled successfully!",
