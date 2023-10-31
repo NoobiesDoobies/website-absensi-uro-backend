@@ -2,6 +2,10 @@ const jwt = require("jsonwebtoken");
 const HttpError = require("../models/http-error");
 
 module.exports = (req, res, next) => {
+  if(req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request")
+    return next();
+  }
   const token = req.headers.authorization.split(" ")[1];
   try {
     if (!token) {
