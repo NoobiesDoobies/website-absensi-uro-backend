@@ -224,7 +224,7 @@ const attendMeeting = async (req, res, next) => {
   try {
     user = await User.findOne({ _id: userId }, "-password");
   } catch (err) {
-    const error = new HttpError(err.message, 500);
+    const error = new HttpError("Something went wrong, please try again later", 500);
     return next(error);
   }
 
@@ -240,7 +240,7 @@ const attendMeeting = async (req, res, next) => {
       .sort({ field: "asc", date: -1 })
       .limit(1);
   } catch (err) {
-    const error = new HttpError(err.message, 500);
+    const error = new HttpError("Meeting not found", 500);
     return next(error);
   }
 
@@ -251,6 +251,7 @@ const attendMeeting = async (req, res, next) => {
 
   if (meeting.attendees.includes(user.id)) {
     const error = new HttpError("User already attended this meeting", 422);
+    console.log("User already attended")
     return next(error);
   }
 
@@ -264,7 +265,7 @@ const attendMeeting = async (req, res, next) => {
     await sess.commitTransaction();
     await sess.endSession();
   } catch (err) {
-    const error = new HttpError(err.message, 500);
+    const error = new HttpError("Something went wrong, please try again later", 500);
     return next(error);
   }
 

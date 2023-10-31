@@ -48,4 +48,6 @@ router.delete("/:uid", userController.deleteUserById);
 
 router.get("/meetings", userController.getMeetingsAttendedByUserId);
 
+router.post("/attend", userController.attendMeeting);
+
 module.exports = router;

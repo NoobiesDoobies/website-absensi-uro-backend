@@ -2,7 +2,6 @@ const app = require("express")();
 const bodyParser = require("body-parser");
 const apiUserRouter = require("./routes/api-user-routes.js");
 const apiMeetingRouter = require("./routes/api-meeting-routes.js");
-const userRouter = require("./routes/user-routes.js");
 const mongoose = require("mongoose");
 const HttpError = require("./models/http-error");
 
@@ -20,7 +19,6 @@ app.use((req, res, next) => {
 });
 app.use(bodyParser.json());
 
-app.use("/user", userRouter);
 app.use("/api/users", apiUserRouter);
 app.use("/api/meetings", apiMeetingRouter);
 
