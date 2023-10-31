@@ -204,9 +204,10 @@ const scheduleMeeting = async (req, res, next) => {
     const error = new HttpError(err.message, 500);
     return next(error);
   }
-  res
-    .status(200)
-    .json({ message: "Meeting scheduler created successfully!", data: createdMeetingScheduler });
+
+  console.log("pass to scheduler")
+  req.body.createdMeetingScheduler = createdMeetingScheduler;
+  next()
 };
 
 exports.getMeetings = getMeetings;

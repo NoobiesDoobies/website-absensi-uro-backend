@@ -5,16 +5,21 @@ const meetingSchema = new mongoose.Schema({
   title: {
     type: [String],
     enum: ["Bersih-bersih", "Ngoprek", "Progres report", "Ideation"],
-    required: true,
+    default: "Ngoprek",
   },
   date: { type: Date, required: true, unique: true },
   attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   createdAt: { type: Date, default: new Date(), ref: "User" },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+  division: {
+    type: [String],
+    enum: ["Kontrol", "Mekanik"],
     required: true,
-  },
+  }
+  // createdBy: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: "User",
+  //   required: true,
+  // },
 });
 
 meetingSchema.plugin(uniqueValidator);
