@@ -2,6 +2,7 @@ const express = require("express");
 const { check } = require("express-validator");
 const router = express.Router();
 const userController = require("../controllers/userControllers");
+const checkAuth = require("../middleware/check-auth");
 
 router.get("/:uid", userController.getUserById);
 
@@ -31,6 +32,8 @@ router.post(
   ],
   userController.login
 );
+
+router.use(checkAuth);
 
 router.patch("/attend/:uid", userController.attendMeeting);
 

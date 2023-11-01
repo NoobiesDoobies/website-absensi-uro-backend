@@ -134,6 +134,7 @@ const getUserById = async (req, res, next) => {
   const id = req.params.uid;
   let user;
 
+
   // Try to fetch user by id
   try {
     user = await User.findOne({ _id: id }, "-password");
@@ -153,10 +154,26 @@ const getUserById = async (req, res, next) => {
 
 const updateUserById = async (req, res, next) => {
   const id = req.params.uid;
-  const { name, email, password, position, generation, role } = req.body;
+  console.log(id)
+  const { name, email, password, position, generation } = req.body;
+
+  // check email already exists
+  let sameEmailUser;
+  try{
+    sameEmailUser = await User.findOne({ email: email }, "-password");
+  } catch(err){
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+
+  if(sameEmailUser){
+    if(sameEmailUser._id.toString() !== id.toString()){
+      const error = new HttpError("Email already exists", 422);
+      return next(error);
+    }
+  }
 
   let user;
-
   // Try to fetch user by id
   try {
     user = await User.findOne({ _id: id }, "-password");
@@ -171,13 +188,22 @@ const updateUserById = async (req, res, next) => {
     return next(error);
   }
 
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch (err) {
+    const error = new HttpError(
+      "Could not create user, please try again.",
+      500
+    );
+    return next(error);
+  }
   // Update user
   user.name = name;
   user.email = email;
-  user.password = password;
+  user.password = hashedPassword;
   user.position = position;
   user.generation = generation;
-  user.role = role;
 
   // Save updated user
   try {
