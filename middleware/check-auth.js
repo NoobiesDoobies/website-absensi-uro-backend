@@ -20,6 +20,8 @@ module.exports = (req, res, next) => {
       isAdmin: decodedToken.isAdmin,
     };
     console.log("Auth success")
+
+    req.userData.id = decodedToken.userId;
     next();
   } catch (err) {
     const error = new HttpError("Authentication failed", 401);

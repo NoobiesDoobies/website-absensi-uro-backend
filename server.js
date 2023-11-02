@@ -1,15 +1,19 @@
-const app = require("express")();
+const express = require("express");
+const app = express();
+const path = require("path");
+const mongoose = require("mongoose");
+const fs = require("fs");
+
 const bodyParser = require("body-parser");
 const apiUserRouter = require("./routes/api-user-routes.js");
 const apiMeetingRouter = require("./routes/api-meeting-routes.js");
-const mongoose = require("mongoose");
 const HttpError = require("./models/http-error");
 
 const port = 5000;
 
 // Handle CORS error
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
@@ -18,6 +22,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(bodyParser.json());
+
+app.use("/uploads/images", express.static(path.join("uploads", "images")));
 
 app.use("/api/users", apiUserRouter);
 app.use("/api/meetings", apiMeetingRouter);
@@ -30,6 +36,13 @@ app.use((req, res, next) => {
 
 // Error handler middleware
 app.use((error, req, res, next) => {
+  // Delete file if error occurs
+  if (req.file) {
+    fs.unlink(req.file.path, (err) => {
+      console.log(err);
+    });
+  }
+
   if (res.headerSent) {
     return next(error);
   }

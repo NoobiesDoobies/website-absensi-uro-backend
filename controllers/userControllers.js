@@ -106,7 +106,7 @@ const signup = async (req, res, next) => {
 };
 
 const getMeetingsAttendedByUserId = async (req, res, next) => {
-  const id = req.params.uid;
+  const id = req.userData.id;
 
   let userWithMeetings;
   try {
@@ -134,7 +134,6 @@ const getUserById = async (req, res, next) => {
   const id = req.params.uid;
   let user;
 
-
   // Try to fetch user by id
   try {
     user = await User.findOne({ _id: id }, "-password");
@@ -153,39 +152,27 @@ const getUserById = async (req, res, next) => {
 };
 
 const updateUserById = async (req, res, next) => {
-  const id = req.params.uid;
-  console.log(id)
+  const id = req.userData.id;
   const { name, email, password, position, generation } = req.body;
-
   // check email already exists
   let sameEmailUser;
-  try{
+  try {
     sameEmailUser = await User.findOne({ email: email }, "-password");
-  } catch(err){
-    const error = new HttpError(err.message, 500);
+  } catch (err) {
+    console.log(sameEmailUser)
+    console.log(err.message)
+    const error = new HttpError(
+      "Could not update profile, please try again.",
+      500
+    );
     return next(error);
   }
 
-  if(sameEmailUser){
-    if(sameEmailUser._id.toString() !== id.toString()){
+  if (sameEmailUser) {
+    if (sameEmailUser._id.toString() !== id.toString()) {
       const error = new HttpError("Email already exists", 422);
       return next(error);
     }
-  }
-
-  let user;
-  // Try to fetch user by id
-  try {
-    user = await User.findOne({ _id: id }, "-password");
-  } catch (err) {
-    const error = new HttpError(err.message, 500);
-    return next(error);
-  }
-
-  // If user not found
-  if (!user) {
-    const error = new HttpError("User not found", 404);
-    return next(error);
   }
 
   let hashedPassword;
@@ -193,21 +180,30 @@ const updateUserById = async (req, res, next) => {
     hashedPassword = await bcrypt.hash(password, 12);
   } catch (err) {
     const error = new HttpError(
-      "Could not create user, please try again.",
+      "Could not update profile, pleaase try again.",
       500
     );
     return next(error);
   }
-  // Update user
-  user.name = name;
-  user.email = email;
-  user.password = hashedPassword;
-  user.position = position;
-  user.generation = generation;
 
-  // Save updated user
+  const filter = { _id: id };
+  const update = {
+    name,
+    email,
+    password: hashedPassword,
+    position,
+    generation,
+  };
+
+  if(req.file){
+    update.image = req.file.path;
+  console.log(req.file.path)
+
+  }
+
+  let user;
   try {
-    await user.save();
+    user = await User.findOneAndUpdate(filter, update, { new: true });
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
@@ -217,7 +213,7 @@ const updateUserById = async (req, res, next) => {
 };
 
 const deleteUserById = async (req, res, next) => {
-  const id = req.params.uid;
+  const id = req.userData.id;
   let user;
   try {
     user = await User.findOne({ _id: id }, "-password").populate(
@@ -244,13 +240,16 @@ const deleteUserById = async (req, res, next) => {
 };
 
 const attendMeeting = async (req, res, next) => {
-  const { userId } = req.body;
+  const id = req.userData.id;
 
   let user;
   try {
-    user = await User.findOne({ _id: userId }, "-password");
+    user = await User.findOne({ _id: id }, "-password");
   } catch (err) {
-    const error = new HttpError("Something went wrong, please try again later", 500);
+    const error = new HttpError(
+      "Something went wrong, please try again later",
+      500
+    );
     return next(error);
   }
 
@@ -277,7 +276,7 @@ const attendMeeting = async (req, res, next) => {
 
   if (meeting.attendees.includes(user.id)) {
     const error = new HttpError("User already attended this meeting", 422);
-    console.log("User already attended")
+    console.log("User already attended");
     return next(error);
   }
 
@@ -291,7 +290,10 @@ const attendMeeting = async (req, res, next) => {
     await sess.commitTransaction();
     await sess.endSession();
   } catch (err) {
-    const error = new HttpError("Something went wrong, please try again later", 500);
+    const error = new HttpError(
+      "Something went wrong, please try again later",
+      500
+    );
     return next(error);
   }
 

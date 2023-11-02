@@ -68,7 +68,7 @@ module.exports = async (req, res, next) => {
     setTimeout(() => {
       console.log("timeout")
       task.stop()
-    }, 5000)
+    }, dateEnd - currentDate)
   } else {
     const schedule = convertToCronSchedule(day, hour, minute);
     const task = cron.schedule(schedule, async () => {
@@ -86,12 +86,10 @@ module.exports = async (req, res, next) => {
         const error = new HttpError(err.message, 500);
         return next(error);
       }
+      task.stop()
     });
 
-    setTimeout(() => {
-        console.log("timeout")
-        task.stop()
-      }, 5000)
+
 
   }
 

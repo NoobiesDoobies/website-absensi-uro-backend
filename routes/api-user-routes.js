@@ -3,6 +3,7 @@ const { check } = require("express-validator");
 const router = express.Router();
 const userController = require("../controllers/userControllers");
 const checkAuth = require("../middleware/check-auth");
+const fileUpload = require("../middleware/file-upload");
 
 router.get("/:uid", userController.getUserById);
 
@@ -38,7 +39,8 @@ router.use(checkAuth);
 router.patch("/attend/:uid", userController.attendMeeting);
 
 router.patch(
-  "/:uid",
+  "/",
+  fileUpload.single("image"),
   [
     check("name").not().isEmpty(),
     check("password").isLength({ min: 6 }),
@@ -47,7 +49,7 @@ router.patch(
   userController.updateUserById
 );
 
-router.delete("/:uid", userController.deleteUserById);
+router.delete("/", userController.deleteUserById);
 
 router.get("/meetings", userController.getMeetingsAttendedByUserId);
 
