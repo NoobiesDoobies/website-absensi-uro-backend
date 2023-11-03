@@ -3,6 +3,8 @@ const HttpError = require("../models/http-error");
 
 const Meeting = require("../models/Meeting");
 
+let scheduledTasks = {};
+
 function convertToCronSchedule(day, hour, minute) {
   // Mapping of days to cron values (Sunday is 0, Monday is 1, etc.)
   const dayMap = {
@@ -63,6 +65,8 @@ module.exports = async (req, res, next) => {
         return next(error);
       }
     });
+
+    scheduledTasks[req.body.createdMeetingScheduler._id] = task;
 
     const currentDate = new Date();
     setTimeout(() => {
