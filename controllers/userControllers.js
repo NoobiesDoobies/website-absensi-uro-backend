@@ -153,14 +153,14 @@ const getUserById = async (req, res, next) => {
 
 const updateUserById = async (req, res, next) => {
   const id = req.userData.id;
-  const { name, email, password, position, generation } = req.body;
+  const { name, email, position, generation } = req.body;
   // check email already exists
   let sameEmailUser;
   try {
     sameEmailUser = await User.findOne({ email: email }, "-password");
   } catch (err) {
-    console.log(sameEmailUser)
-    console.log(err.message)
+    console.log(sameEmailUser);
+    console.log(err.message);
     const error = new HttpError(
       "Could not update profile, please try again.",
       500
@@ -175,30 +175,17 @@ const updateUserById = async (req, res, next) => {
     }
   }
 
-  let hashedPassword;
-  try {
-    hashedPassword = await bcrypt.hash(password, 12);
-  } catch (err) {
-    const error = new HttpError(
-      "Could not update profile, pleaase try again.",
-      500
-    );
-    return next(error);
-  }
-
   const filter = { _id: id };
   const update = {
     name,
     email,
-    password: hashedPassword,
     position,
     generation,
   };
 
-  if(req.file){
+  if (req.file) {
     update.image = req.file.path;
-  console.log(req.file.path)
-
+    console.log(req.file.path);
   }
 
   let user;
@@ -210,6 +197,61 @@ const updateUserById = async (req, res, next) => {
   }
 
   res.status(200).json({ user: user.toObject({ getters: true }) });
+};
+
+const updatePassword = async (req, res, next) => {
+  const { oldPassword, newPassword, comfirmNewPassword } = req.body;
+  const id = req.userData.id;
+
+  if(newPassword !== comfirmNewPassword){
+    return next(
+      new HttpError("New password and comfirm password does not match", 422)
+    );
+  }
+
+  let user;
+  try {
+    user = await User.findOne({ _id: id });
+  } catch (err) {
+    return next(
+      new HttpError("Something went wrong, please try again later", 500)
+    );
+  }
+
+  let isValidPassword;
+  try {
+    isValidPassword = await bcrypt.compare(oldPassword, user.password);
+  } catch (err) {
+    return next(
+      new HttpError("Something went wrong, please try again later", 500)
+    );
+  }
+
+  if (!isValidPassword) {
+    return next(
+      new HttpError("Invalid credentials, could not log you in", 401)
+    );
+  }
+
+  let hashedNewPassword;
+
+  try {
+    hashedNewPassword = await bcrypt.hash(newPassword, 12);
+  } catch (err) {
+    new HttpError("Something went wrong, please try again later", 500);
+  }
+
+  user.password = hashedNewPassword;
+
+  try {
+    await user.save();
+  } catch (err) {
+    new HttpError("Something went wrong, please try again later", 500);
+  }
+
+  res.status(200).send({
+    message: "Password updated sucessfully",
+  });
 };
 
 const deleteUserById = async (req, res, next) => {
@@ -341,6 +383,8 @@ const login = async (req, res, next) => {
     return next(error);
   }
 
+  console.log("logged in");
+
   res.status(201).json({
     message: "Logged In!",
     userId: existingUser.id,
@@ -358,3 +402,4 @@ exports.deleteUserById = deleteUserById;
 exports.getMeetingsAttendedByUserId = getMeetingsAttendedByUserId;
 exports.attendMeeting = attendMeeting;
 exports.login = login;
+exports.updatePassword = updatePassword;

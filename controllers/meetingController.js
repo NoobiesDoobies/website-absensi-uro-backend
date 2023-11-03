@@ -172,6 +172,24 @@ const deleteMeetingById = async (req, res, next) => {
   res.status(200).json({ message: "Meeting deleted!" });
 };
 
+const getMeetingsSchedule = async (req, res, next) => {
+  let meetings;
+
+  console.log("getting schedules")
+
+  try {
+    meetings = await MeetingScheduler.find().exec();
+  } catch (err) {
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+
+  res.status(200).json({
+    meetings: meetings.map((meeting) => meeting.toObject({ getters: true })),
+  });
+
+};
+
 const scheduleMeeting = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -216,3 +234,4 @@ exports.getMeetingById = getMeetingById;
 exports.updateMeetingById = updateMeetingById;
 exports.deleteMeetingById = deleteMeetingById;
 exports.scheduleMeeting = scheduleMeeting;
+exports.getMeetingsSchedule = getMeetingsSchedule;

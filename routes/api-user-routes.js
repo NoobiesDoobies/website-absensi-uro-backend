@@ -36,7 +36,7 @@ router.post(
 
 router.use(checkAuth);
 
-router.patch("/attend/:uid", userController.attendMeeting);
+router.patch("/update-password", userController.updatePassword);
 
 router.patch(
   "/",
@@ -48,6 +48,7 @@ router.patch(
   ],
   userController.updateUserById
 );
+
 
 router.delete("/", userController.deleteUserById);
 
