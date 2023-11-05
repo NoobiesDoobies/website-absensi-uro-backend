@@ -39,15 +39,21 @@ function convertToCronSchedule(day, hour, minute) {
   }
 }
 
+Date.prototype.addHours= function(h){
+  this.setHours(this.getHours()+h);
+  return this;
+}
+
 module.exports = async (req, res, next) => {
   const { division, day, hour, minute, userId } = req.body;
+  
   let { dateEnd, isJustOnce } = req.body;
   isJustOnce = isJustOnce === "true" ? true : false;
   dateEnd = new Date(dateEnd);
  
 
   if (!isJustOnce) {
-    const schedule = convertToCronSchedule(day, hour, minute);
+    const schedule = convertToCronSchedule(day, hour-1, minute);
     const task = cron.schedule(schedule, async () => {
         console.log("every second")
       try {
@@ -55,7 +61,7 @@ module.exports = async (req, res, next) => {
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
-          date: new Date(),
+          date: new Date().addHours(1),
         });
 
         await newMeeting.save();
@@ -74,7 +80,7 @@ module.exports = async (req, res, next) => {
       task.stop()
     }, dateEnd - currentDate)
   } else {
-    const schedule = convertToCronSchedule(day, hour, minute);
+    const schedule = convertToCronSchedule(day, hour-1, minute);
     // const task = cron.schedule(schedule, async () => {
     const task = cron.schedule("* * * * * *", async () => {
       try {
@@ -82,7 +88,7 @@ module.exports = async (req, res, next) => {
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
-          date: new Date(),
+          date: new Date().addHours(1),
         });
         await newMeeting.save();
         
