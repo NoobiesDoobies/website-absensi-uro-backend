@@ -23,7 +23,6 @@ const createMeeting = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // There are validation errors
-    console.log(req.body);
     return res.status(422).json({ errors: errors.array() });
   }
 
@@ -131,7 +130,7 @@ const deleteMeetingById = async (req, res, next) => {
 
   let meeting;
   try {
-    meeting = await Meeting.findById(id).populate("attendees");
+    meeting = await Meeting.findById(id)
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
@@ -145,20 +144,6 @@ const deleteMeetingById = async (req, res, next) => {
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
-
-    if (meeting.attendees) {
-      const userPromises = meeting.attendees.map(async (attendeeId) => {
-        // Find the user by ID and remove the meeting ID from their 'meetingsAttended' array
-        const user = await User.findById(attendeeId);
-        if (user) {
-          user.meetingsAttended.pull(meeting.id);
-          return user.save({ session: sess });
-        }
-      });
-
-      // Wait for all user updates to complete
-      await Promise.all(userPromises);
-    }
 
     await Meeting.deleteOne({ _id: meeting.id }).session(sess);
 
@@ -194,7 +179,6 @@ const scheduleMeeting = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // There are validation errors
-    console.log(req.body);
     return res.status(422).json({ errors: errors.array() });
   }
 
@@ -223,7 +207,6 @@ const scheduleMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  console.log("pass to scheduler")
   req.body.createdMeetingScheduler = createdMeetingScheduler;
   next()
 };

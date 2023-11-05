@@ -75,9 +75,10 @@ module.exports = async (req, res, next) => {
     }, dateEnd - currentDate)
   } else {
     const schedule = convertToCronSchedule(day, hour, minute);
-    const task = cron.schedule(schedule, async () => {
+    // const task = cron.schedule(schedule, async () => {
+    const task = cron.schedule("* * * * * *", async () => {
       try {
-        console.log("Running a task every seconds");
+        console.log("creating meeting")
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,

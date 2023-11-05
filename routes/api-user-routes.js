@@ -34,6 +34,8 @@ router.post(
   userController.login
 );
 
+router.get("/meetings/:uid", userController.getMeetingsAttendedByUserId);
+
 router.use(checkAuth);
 
 router.patch("/update-password", userController.updatePassword);
@@ -52,7 +54,6 @@ router.patch(
 
 router.delete("/", userController.deleteUserById);
 
-router.get("/meetings", userController.getMeetingsAttendedByUserId);
 
 router.post("/attend", userController.attendMeeting);
 

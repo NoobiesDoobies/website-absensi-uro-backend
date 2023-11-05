@@ -7,6 +7,7 @@ module.exports = (req, res, next) => {
     return next();
   }
 
+
   const token = req.headers.authorization.split(" ")[1];
   try {
     if (!token) {

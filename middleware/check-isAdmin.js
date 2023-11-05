@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 const HttpError = require("../models/http-error");
 
 module.exports = (req, res, next) => {
-  console.log(req.headers.authorization)
   if(req.method === "OPTIONS") {
     return next();
   }
@@ -14,8 +13,11 @@ module.exports = (req, res, next) => {
     }
     const decodedToken = jwt.verify(token, "KEY_SECRET");
     if(decodedToken.isAdmin === false) {
+      console.log("not admin")
       throw new Error("Authentication failed");
     }
+
+    console.log(decodedToken)
 
     req.userData = {
       userId: decodedToken.userId,

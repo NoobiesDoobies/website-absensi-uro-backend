@@ -2,6 +2,7 @@ const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const Meeting = require("../models/Meeting");
+const UserMeeting = require("../models/UserMeeting");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -71,8 +72,6 @@ const signup = async (req, res, next) => {
     role,
   });
 
-  console.log(createdUser);
-
   try {
     await createdUser.save();
   } catch (err) {
@@ -89,7 +88,7 @@ const signup = async (req, res, next) => {
         isAdmin: createdUser.role === "admin",
       },
       "KEY_SECRET",
-      { expiresIn: "1h" }
+      { expiresIn: "100000h" }
     );
   } catch (err) {
     const error = new HttpError(`Sign up failed, please try again later`, 500);
@@ -106,28 +105,43 @@ const signup = async (req, res, next) => {
 };
 
 const getMeetingsAttendedByUserId = async (req, res, next) => {
-  const id = req.userData.id;
-
-  let userWithMeetings;
+  const id = req.params.uid;
+  let user;
   try {
-    userWithMeetings = await User.findById(id).populate("meetings");
+    user = await User.findById(id);
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
   }
 
-  if (!userWithMeetings) {
+  if (!user) {
     const error = new HttpError("User not found", 404);
     return next(error);
   }
 
-  meetingsAttended = userWithMeetings.meetings;
+  let userMeetings;
+  try {
+    userMeetings = await UserMeeting.find({ user: id })
+      .populate("meeting")
+      .populate("user");
+  } catch (err) {
+    const error = new HttpError("Something went wrong", 500);
+    return next(error);
+  }
 
-  res.status(200).json({
-    meetingsAttended: meetingsAttended.map((meeting) =>
-      meeting.toObject({ getters: true })
-    ),
-  });
+  if (!userMeetings) {
+    const error = new HttpError("No meetings found", 404);
+    return next(error);
+  }
+
+  res
+    .status(200)
+    .json({
+      userMeetings: userMeetings.map((userMeeting) =>
+        userMeeting.toObject({ getters: true })
+      ),
+      user: user.toObject({ getters: true }),
+    });
 };
 
 const getUserById = async (req, res, next) => {
@@ -159,8 +173,6 @@ const updateUserById = async (req, res, next) => {
   try {
     sameEmailUser = await User.findOne({ email: email }, "-password");
   } catch (err) {
-    console.log(sameEmailUser);
-    console.log(err.message);
     const error = new HttpError(
       "Could not update profile, please try again.",
       500
@@ -185,7 +197,6 @@ const updateUserById = async (req, res, next) => {
 
   if (req.file) {
     update.image = req.file.path;
-    console.log(req.file.path);
   }
 
   let user;
@@ -203,7 +214,7 @@ const updatePassword = async (req, res, next) => {
   const { oldPassword, newPassword, comfirmNewPassword } = req.body;
   const id = req.userData.id;
 
-  if(newPassword !== comfirmNewPassword){
+  if (newPassword !== comfirmNewPassword) {
     return next(
       new HttpError("New password and comfirm password does not match", 422)
     );
@@ -258,9 +269,7 @@ const deleteUserById = async (req, res, next) => {
   const id = req.userData.id;
   let user;
   try {
-    user = await User.findOne({ _id: id }, "-password").populate(
-      "meetingsAttended"
-    );
+    user = await User.findOne({ _id: id }, "-password");
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
@@ -283,7 +292,6 @@ const deleteUserById = async (req, res, next) => {
 
 const attendMeeting = async (req, res, next) => {
   const id = req.userData.id;
-
   let user;
   try {
     user = await User.findOne({ _id: id }, "-password");
@@ -316,18 +324,41 @@ const attendMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  if (meeting.attendees.includes(user.id)) {
-    const error = new HttpError("User already attended this meeting", 422);
-    console.log("User already attended");
+  // check if user has attended the latest meeting
+  let userMeetingAttended;
+  try {
+    userMeetingAttended = await UserMeeting.findOne({
+      user: user._id,
+      meeting: meeting._id,
+    });
+  } catch (err) {
+    const error = new HttpError(
+      "Something went wrong, please try again later",
+      500
+    );
     return next(error);
   }
 
+  if (userMeetingAttended) {
+    const error = new HttpError("You have already attended this meeting", 422);
+    return next(error);
+  }
+
+  const lateTime = meeting.date - new Date(req.body.attendedAt);
+  const userMeeting = new UserMeeting({
+    user: user._id,
+    meeting: meeting._id,
+    lateTime: lateTime,
+    attendedAt: new Date(req.body.attendedAt),
+  });
+  user.totalMeetingsAttended += 1;
+  if(lateTime > 0){
+    user.totalLateMeetingsAttended += 1;
+  }
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
-    meeting.attendees.push(user);
-    user.meetingsAttended.push(meeting);
-    await meeting.save({ session: sess });
+    await userMeeting.save({ session: sess });
     await user.save({ session: sess });
     await sess.commitTransaction();
     await sess.endSession();
@@ -376,14 +407,12 @@ const login = async (req, res, next) => {
         isAdmin: existingUser.role === "admin",
       },
       "KEY_SECRET",
-      { expiresIn: "1h" }
+      { expiresIn: "100000h" }
     );
   } catch (err) {
     const error = new HttpError(`Login in failed, please try again later`, 500);
     return next(error);
   }
-
-  console.log("logged in");
 
   res.status(201).json({
     message: "Logged In!",

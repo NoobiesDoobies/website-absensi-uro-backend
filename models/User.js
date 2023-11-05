@@ -27,8 +27,9 @@ const userSchema = new mongoose.Schema({
     ],
   },
   generation: { type: Number, required: true },
-  meetingsAttended: [{ type: mongoose.Schema.Types.ObjectId, ref: "Meeting" }],
   image: { type: String, default: "uploads/images/default.jpg" },
+  totalMeetingsAttended: { type: Number, default: 0 },
+  totalLateMeetingsAttended: { type: Number, default: 0 },
 });
 
 userSchema.plugin(uniqueValidator);
