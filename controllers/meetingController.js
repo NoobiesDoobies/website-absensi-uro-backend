@@ -6,6 +6,7 @@ const HttpError = require("../models/http-error");
 const mongoose = require("mongoose");
 
 const getMeetings = async (req, res, next) => {
+  console.log("getting meetings")
   let meetings;
   try {
     meetings = await Meeting.find().exec();

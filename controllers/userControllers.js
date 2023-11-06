@@ -30,7 +30,7 @@ const signup = async (req, res, next) => {
     );
   }
 
-  const { name, email, password, position, generation, role } = req.body;
+  const { name, email, password, position, generation, role, dateOfBirth } = req.body;
 
   // Find a user with matching email
   let existingUser;
@@ -70,6 +70,7 @@ const signup = async (req, res, next) => {
     position,
     generation,
     role,
+    dateOfBirth,
   });
 
   try {
@@ -167,8 +168,10 @@ const getUserById = async (req, res, next) => {
 
 const updateUserById = async (req, res, next) => {
   const id = req.userData.id;
-  const { name, email, position, generation } = req.body;
+  const { name, email, position, generation, dateOfBirth } = req.body;
   // check email already exists
+console.log(dateOfBirth)
+
   let sameEmailUser;
   try {
     sameEmailUser = await User.findOne({ email: email }, "-password");
@@ -193,6 +196,7 @@ const updateUserById = async (req, res, next) => {
     email,
     position,
     generation,
+    dateOfBirth
   };
 
   if (req.file) {
@@ -344,7 +348,10 @@ const attendMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  const lateTime = meeting.date - new Date(req.body.attendedAt);
+  const lateTime = new Date(req.body.attendedAt) - meeting.date;
+  console.log(meeting.date.toString())
+  console.log(req.body.attendedAt.toString())
+  console.log(lateTime)
   const userMeeting = new UserMeeting({
     user: user._id,
     meeting: meeting._id,

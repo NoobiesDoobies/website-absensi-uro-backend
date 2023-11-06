@@ -7,7 +7,7 @@ const meetingPostScheduler = require("../middleware/meeting-post-scheduler");
 
 router.get("/meeting/:mid", meetingController.getMeetingById);
 
-router.get("/meeting", meetingController.getMeetings);
+router.get("/", meetingController.getMeetings);
 
 router.use(
   checkIsAdmin

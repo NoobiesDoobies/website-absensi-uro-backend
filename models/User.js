@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema({
   image: { type: String, default: "uploads/images/default.jpg" },
   totalMeetingsAttended: { type: Number, default: 0 },
   totalLateMeetingsAttended: { type: Number, default: 0 },
+  dateOfBirth: { type: Date, required: true },
 });
 
 userSchema.plugin(uniqueValidator);
