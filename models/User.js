@@ -26,6 +26,11 @@ const userSchema = new mongoose.Schema({
       "Official",
     ],
   },
+  division: {
+    type: String,
+    required: true,
+    enum: ["Kontrol", "Mekanik", "Official"],
+  },
   generation: { type: Number, required: true },
   image: { type: String, default: "uploads/images/default.jpg" },
   totalMeetingsAttended: { type: Number, default: 0 },

@@ -23,6 +23,7 @@ app.use((req, res, next) => {
 });
 app.use(bodyParser.json());
 
+app.use("/public/logo", express.static(path.join("public", "logo")));
 app.use("/uploads/images", express.static(path.join("uploads", "images")));
 
 app.use("/api/users", apiUserRouter);

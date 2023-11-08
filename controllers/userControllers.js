@@ -30,7 +30,7 @@ const signup = async (req, res, next) => {
     );
   }
 
-  const { name, email, password, position, generation, role, dateOfBirth } = req.body;
+  const { name, email, password, position, division, generation, role, dateOfBirth } = req.body;
 
   // Find a user with matching email
   let existingUser;
@@ -68,6 +68,7 @@ const signup = async (req, res, next) => {
     email,
     password: hashedPassword,
     position,
+    division,
     generation,
     role,
     dateOfBirth,
@@ -168,7 +169,7 @@ const getUserById = async (req, res, next) => {
 
 const updateUserById = async (req, res, next) => {
   const id = req.userData.id;
-  const { name, email, position, generation, dateOfBirth } = req.body;
+  const { name, email, position, division, generation, dateOfBirth } = req.body;
   // check email already exists
 console.log(dateOfBirth)
 
@@ -195,9 +196,12 @@ console.log(dateOfBirth)
     name,
     email,
     position,
+    division,
     generation,
     dateOfBirth
   };
+
+  console.log(division);
 
   if (req.file) {
     update.image = req.file.path;
@@ -325,6 +329,11 @@ const attendMeeting = async (req, res, next) => {
 
   if (!meeting) {
     const error = new HttpError("Meeting not found", 404);
+    return next(error);
+  }
+
+  if(meeting.division.includes(user.division)){
+    const error = new HttpError("You are not allowed to attend this meeting", 422);
     return next(error);
   }
 
