@@ -2,6 +2,7 @@ const Meeting = require("../models/Meeting");
 const MeetingScheduler = require("../models/MeetingScheduler");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
+const UserMeeting = require("../models/UserMeeting");
 const HttpError = require("../models/http-error");
 const mongoose = require("mongoose");
 const CronJobManager = require("cron-job-manager");
@@ -117,28 +118,6 @@ const updateMeetingById = async (req, res, next) => {
   const id = req.params.mid;
   const { title, date, createdBy } = req.body;
 
-  let creator;
-  // Find the user who created the meeting
-  try {
-    creator = await User.findById(createdBy);
-  } catch (err) {
-    const error = new HttpError("User not found", 404);
-    return next(error);
-  }
-  // If no user with userId found
-  if (!creator) {
-    const error = new HttpError("User not found", 404);
-    return next(error);
-  }
-
-  // If user doesn't have admin role, return error
-  if (creator.role !== "admin") {
-    const error = new HttpError(
-      "You are not authorized to create a meeting",
-      401
-    );
-    return next(error);
-  }
 
   let meeting;
   try {
@@ -188,7 +167,7 @@ const deleteMeetingById = async (req, res, next) => {
     sess.startTransaction();
 
     await Meeting.deleteOne({ _id: meeting.id }).session(sess);
-
+    await UserMeeting.deleteMany({ meeting: meeting.id }).session(sess);
     await sess.commitTransaction();
     await sess.endSession();
   } catch (err) {
@@ -256,7 +235,8 @@ const scheduleMeeting = async (req, res, next) => {
     onComplete: ()=>{console.log("cron job completed")},
   }
 
-  manager.add(scheduleId, convertToCronSchedule(day, hour - 1, minute), () => {
+  // manager.add(scheduleId, convertToCronSchedule(day, hour - 1, minute), () => {
+  manager.add(scheduleId, "* * * * * *", () => {  
     console.log("cron job running");
     const meeting = new Meeting({
       title: `Ngoprek`,
@@ -309,6 +289,7 @@ const deleteSchedule = async (req, res, next) => {
     return next(error);
   }
 
+  console.log("stopping schedule with id: ", id)
   manager.stop(id);
 
   res.status(200).json({ message: "Schedule deleted!" });

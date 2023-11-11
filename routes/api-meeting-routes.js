@@ -30,7 +30,7 @@ router.post(
 router.delete("/schedule/:sid", meetingController.deleteSchedule);
 
 router.patch(
-  "/:mid",
+  "/meeting/:mid",
   [check("title").not().isEmpty(), check("date").not().isEmpty()],
   meetingController.updateMeetingById
 );
