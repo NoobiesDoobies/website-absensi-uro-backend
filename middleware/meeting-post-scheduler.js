@@ -1,9 +1,10 @@
 const cron = require("node-cron");
+const CronJobManager = require("cron-job-manager");
 const HttpError = require("../models/http-error");
 
 const Meeting = require("../models/Meeting");
 
-let scheduledTasks = {};
+const manager = new CronJobManager();
 
 function convertToCronSchedule(day, hour, minute) {
   // Mapping of days to cron values (Sunday is 0, Monday is 1, etc.)
@@ -39,25 +40,24 @@ function convertToCronSchedule(day, hour, minute) {
   }
 }
 
-Date.prototype.addHours= function(h){
-  this.setHours(this.getHours()+h);
+Date.prototype.addHours = function (h) {
+  this.setHours(this.getHours() + h);
   return this;
-}
+};
 
 module.exports = async (req, res, next) => {
-  const { division, day, hour, minute, userId } = req.body;
-  
+  const { division, day, hour, minute } = req.body;
+
   let { dateEnd, isJustOnce } = req.body;
   isJustOnce = isJustOnce === "true" ? true : false;
   dateEnd = new Date(dateEnd);
- 
 
   if (!isJustOnce) {
-    const schedule = convertToCronSchedule(day, hour-1, minute);
+    const schedule = convertToCronSchedule(day, hour - 1, minute);
+    manager.add("req")
     const task = cron.schedule(schedule, async () => {
-        console.log("every second")
+      console.log("every second");
       try {
-
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
@@ -71,42 +71,33 @@ module.exports = async (req, res, next) => {
         return next(error);
       }
     });
-
-    scheduledTasks[req.body.createdMeetingScheduler._id] = task;
 
     const currentDate = new Date();
     setTimeout(() => {
-      console.log("timeout")
-      task.stop()
-    }, dateEnd - currentDate)
+      console.log("timeout");
+      task.stop();
+    }, dateEnd - currentDate);
+    console.log(JSON.stringify(task, null, 2));
   } else {
-    const schedule = convertToCronSchedule(day, hour-1, minute);
+    const schedule = convertToCronSchedule(day, hour - 1, minute);
     // const task = cron.schedule(schedule, async () => {
     const task = cron.schedule("* * * * * *", async () => {
       try {
-        console.log("creating meeting")
+        console.log("creating meeting");
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
           date: new Date().addHours(1),
         });
         await newMeeting.save();
-        
       } catch (err) {
         console.log(err);
         const error = new HttpError(err.message, 500);
         return next(error);
       }
-      task.stop()
+      task.stop();
     });
-
-
-
   }
 
-
-  res.status(200).json({
-    message: "Meeting scheduled successfully!",
-    data: req.body.createdMeetingScheduler,
-  });
+  next();
 };

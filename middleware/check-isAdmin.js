@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
   try {
     if (!token) {
       throw new Error("Authentication failed");
-    }
+    } 
     const decodedToken = jwt.verify(token, "KEY_SECRET");
     if(decodedToken.isAdmin === false) {
       console.log("not admin")

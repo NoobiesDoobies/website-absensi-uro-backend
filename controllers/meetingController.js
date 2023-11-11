@@ -4,9 +4,50 @@ const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const HttpError = require("../models/http-error");
 const mongoose = require("mongoose");
+const CronJobManager = require("cron-job-manager");
+const manager = new CronJobManager();
+
+const convertToCronSchedule = (day, hour, minute) => {
+  // Mapping of days to cron values (Sunday is 0, Monday is 1, etc.)
+  const dayMap = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+
+  const cronDay = dayMap[day]; // Convert the day string to a cron value
+  const cronHour = hour.toString();
+  const cronMinute = minute.toString();
+
+  // Validate the input
+  if (
+    cronDay !== undefined && // Check if the hour is an integer
+    hour >= 0 &&
+    hour <= 23 &&
+    minute >= 0 &&
+    minute <= 59 // Check if the minute is in the valid range (0-59)
+  ) {
+    // Create the cron schedule
+    const cronSchedule = `${cronMinute} ${cronHour} * * ${cronDay}`;
+
+    return cronSchedule;
+  } else {
+    // If the input is invalid, return null or an error message
+    return null;
+  }
+};
+
+Date.prototype.addHours = function (h) {
+  this.setHours(this.getHours() + h);
+  return this;
+};
 
 const getMeetings = async (req, res, next) => {
-  console.log("getting meetings")
+  console.log("getting meetings");
   let meetings;
   try {
     meetings = await Meeting.find().exec();
@@ -131,7 +172,7 @@ const deleteMeetingById = async (req, res, next) => {
 
   let meeting;
   try {
-    meeting = await Meeting.findById(id)
+    meeting = await Meeting.findById(id);
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
@@ -161,7 +202,7 @@ const deleteMeetingById = async (req, res, next) => {
 const getMeetingsSchedule = async (req, res, next) => {
   let meetings;
 
-  console.log("getting schedules")
+  console.log("getting schedules");
 
   try {
     meetings = await MeetingScheduler.find().exec();
@@ -173,7 +214,6 @@ const getMeetingsSchedule = async (req, res, next) => {
   res.status(200).json({
     meetings: meetings.map((meeting) => meeting.toObject({ getters: true })),
   });
-
 };
 
 const scheduleMeeting = async (req, res, next) => {
@@ -208,8 +248,70 @@ const scheduleMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  req.body.createdMeetingScheduler = createdMeetingScheduler;
-  next()
+  const scheduleId = createdMeetingScheduler.toObject({ getters: true }).id;
+
+  const scheduleOption = {
+    start: false,
+    timeZone: "Asia/Jakarta",
+    onComplete: ()=>{console.log("cron job completed")},
+  }
+
+  manager.add(scheduleId, convertToCronSchedule(day, hour - 1, minute), () => {
+    console.log("cron job running");
+    const meeting = new Meeting({
+      title: `Ngoprek`,
+      division: division,
+      date: new Date().addHours(1),
+      createdBy: userId,
+    });
+
+    // add await to catch any error inside the async operations
+    try {
+      meeting.save();
+    } catch (err) {
+      const error = new HttpError(err.message, 500);
+      return next(error);
+    }
+  });
+  manager.start(scheduleId);
+
+  res.status(200).json({ message: "Meeting scheduled successfully!" });
+};
+
+const deleteSchedule = async (req, res, next) => {
+  const id = req.params.sid;
+
+  let scheduleToDelete;
+  try {
+    scheduleToDelete = await MeetingScheduler.findById(id);
+  } catch (err) {
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+
+  if (!scheduleToDelete) {
+    const error = new HttpError("Schedule not found", 404);
+    return next(error);
+  }
+
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    await MeetingScheduler.deleteOne({ _id: scheduleToDelete.id }).session(
+      sess
+    );
+
+    await sess.commitTransaction();
+    await sess.endSession();
+  } catch (err) {
+    const error = new HttpError(err.message, 500);
+    return next(error);
+  }
+
+  manager.stop(id);
+
+  res.status(200).json({ message: "Schedule deleted!" });
 };
 
 exports.getMeetings = getMeetings;
@@ -219,3 +321,4 @@ exports.updateMeetingById = updateMeetingById;
 exports.deleteMeetingById = deleteMeetingById;
 exports.scheduleMeeting = scheduleMeeting;
 exports.getMeetingsSchedule = getMeetingsSchedule;
+exports.deleteSchedule = deleteSchedule;

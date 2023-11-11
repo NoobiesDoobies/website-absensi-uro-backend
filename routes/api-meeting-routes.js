@@ -24,9 +24,10 @@ router.post(
 
 router.post(
   "/schedule",
-  meetingController.scheduleMeeting, 
-  meetingPostScheduler
+  meetingController.scheduleMeeting 
 )
+
+router.delete("/schedule/:sid", meetingController.deleteSchedule);
 
 router.patch(
   "/:mid",
