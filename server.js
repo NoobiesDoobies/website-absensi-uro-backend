@@ -40,7 +40,6 @@ app.use((error, req, res, next) => {
   // Delete file if error occurs
   if (req.file) {
     fs.unlink(req.file.path, (err) => {
-      console.log(err);
     });
   }
 
@@ -53,7 +52,7 @@ app.use((error, req, res, next) => {
 
 mongoose
   .connect(
-    "mongodb+srv://carlioseryan20:281003car@cluster0.plqxwwn.mongodb.net/?retryWrites=true&w=majority"
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.plqxwwn.mongodb.net/?retryWrites=true&w=majority`
   )
   .then(() => {
     app.listen(port, () => {

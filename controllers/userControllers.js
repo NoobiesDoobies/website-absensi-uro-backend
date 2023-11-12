@@ -9,14 +9,47 @@ const jwt = require("jsonwebtoken");
 
 const getUsers = async (req, res, next) => {
   let users;
+  let userMeetings;
   try {
-    users = await User.find({}, "-password");
+    users = await User.aggregate([
+      {
+        $lookup: {
+          from: "usermeetings",
+          localField: "_id",
+          foreignField: "user",
+          as: "meetings",
+        },
+      },
+      {
+        $addFields: {
+          "totalMeetingsAttended": { $size: "$meetings" },
+          "totalLateMeetingsAttended": {
+            $sum: {
+              $map: {
+                input: "$meetings",
+                as: "meeting",
+                in: {
+                  $cond: {
+                    if: { $gt: ["$$meeting.lateTime", 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+        
+      },
+    ]);
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
   }
 
-  res.json({ users: users.map((user) => user.toObject({ getters: true })) });
+  res.json({
+    users,
+  });
 };
 
 const signup = async (req, res, next) => {
@@ -30,7 +63,16 @@ const signup = async (req, res, next) => {
     );
   }
 
-  const { name, email, password, position, division, generation, role, dateOfBirth } = req.body;
+  const {
+    name,
+    email,
+    password,
+    position,
+    division,
+    generation,
+    role,
+    dateOfBirth,
+  } = req.body;
 
   // Find a user with matching email
   let existingUser;
@@ -89,7 +131,7 @@ const signup = async (req, res, next) => {
         email: createdUser.email,
         isAdmin: createdUser.role === "admin",
       },
-      "KEY_SECRET",
+      process.env.JWT_KEY
       { expiresIn: "100000h" }
     );
   } catch (err) {
@@ -136,14 +178,12 @@ const getMeetingsAttendedByUserId = async (req, res, next) => {
     return next(error);
   }
 
-  res
-    .status(200)
-    .json({
-      userMeetings: userMeetings.map((userMeeting) =>
-        userMeeting.toObject({ getters: true })
-      ),
-      user: user.toObject({ getters: true }),
-    });
+  res.status(200).json({
+    userMeetings: userMeetings.map((userMeeting) =>
+      userMeeting.toObject({ getters: true })
+    ),
+    user: user.toObject({ getters: true }),
+  });
 };
 
 const getUserById = async (req, res, next) => {
@@ -152,7 +192,37 @@ const getUserById = async (req, res, next) => {
 
   // Try to fetch user by id
   try {
-    user = await User.findOne({ _id: id }, "-password");
+    user = await User.findOne({ _id: id }, "-password").aggregate([
+      {
+        $lookup: {
+          from: "usermeetings",
+          localField: "_id",
+          foreignField: "user",
+          as: "meetings",
+        },
+      },
+      {
+        $addFields: {
+          "totalMeetingsAttended": { $size: "$meetings" },
+          "totalLateMeetingsAttended": {
+            $sum: {
+              $map: {
+                input: "$meetings",
+                as: "meeting",
+                in: {
+                  $cond: {
+                    if: { $gt: ["$$meeting.lateTime", 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+        
+      },
+    ]);
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
@@ -171,7 +241,6 @@ const updateUserById = async (req, res, next) => {
   const id = req.userData.id;
   const { name, email, position, division, generation, dateOfBirth } = req.body;
   // check email already exists
-console.log(dateOfBirth)
 
   let sameEmailUser;
   try {
@@ -198,10 +267,9 @@ console.log(dateOfBirth)
     position,
     division,
     generation,
-    dateOfBirth
+    dateOfBirth,
   };
 
-  console.log(division);
 
   if (req.file) {
     update.image = req.file.path;
@@ -332,8 +400,12 @@ const attendMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  if(meeting.division.includes(user.division)){
-    const error = new HttpError("You are not allowed to attend this meeting", 422);
+  // check if user is allowed to attend the meeting
+  if (!meeting.division.includes(user.division)) {
+    const error = new HttpError(
+      "You are not allowed to attend this meeting",
+      422
+    );
     return next(error);
   }
 
@@ -357,20 +429,16 @@ const attendMeeting = async (req, res, next) => {
     return next(error);
   }
 
-  const lateTime = new Date(req.body.attendedAt) - meeting.date;
-  console.log(meeting.date.toString())
-  console.log(req.body.attendedAt.toString())
-  console.log(lateTime)
+  const lateTime =
+    new Date(req.body.attendedAt) - meeting.date < 0
+      ? 0
+      : new Date(req.body.attendedAt) - meeting.date;
   const userMeeting = new UserMeeting({
     user: user._id,
     meeting: meeting._id,
     lateTime: lateTime,
     attendedAt: new Date(req.body.attendedAt),
   });
-  user.totalMeetingsAttended += 1;
-  if(lateTime > 0){
-    user.totalLateMeetingsAttended += 1;
-  }
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
@@ -422,7 +490,7 @@ const login = async (req, res, next) => {
         email: existingUser.email,
         isAdmin: existingUser.role === "admin",
       },
-      "KEY_SECRET",
+      process.env.JWT_KEY,
       { expiresIn: "100000h" }
     );
   } catch (err) {

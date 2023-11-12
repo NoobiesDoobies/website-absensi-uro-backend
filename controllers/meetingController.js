@@ -48,7 +48,6 @@ Date.prototype.addHours = function (h) {
 };
 
 const getMeetings = async (req, res, next) => {
-  console.log("getting meetings");
   let meetings;
   try {
     meetings = await Meeting.find().exec();
@@ -181,7 +180,6 @@ const deleteMeetingById = async (req, res, next) => {
 const getMeetingsSchedule = async (req, res, next) => {
   let meetings;
 
-  console.log("getting schedules");
 
   try {
     meetings = await MeetingScheduler.find().exec();
@@ -232,12 +230,10 @@ const scheduleMeeting = async (req, res, next) => {
   const scheduleOption = {
     start: false,
     timeZone: "Asia/Jakarta",
-    onComplete: ()=>{console.log("cron job completed")},
   }
 
   // manager.add(scheduleId, convertToCronSchedule(day, hour - 1, minute), () => {
   manager.add(scheduleId, "* * * * * *", () => {  
-    console.log("cron job running");
     const meeting = new Meeting({
       title: `Ngoprek`,
       division: division,
@@ -289,7 +285,6 @@ const deleteSchedule = async (req, res, next) => {
     return next(error);
   }
 
-  console.log("stopping schedule with id: ", id)
   manager.stop(id);
 
   res.status(200).json({ message: "Schedule deleted!" });

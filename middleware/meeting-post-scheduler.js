@@ -56,7 +56,6 @@ module.exports = async (req, res, next) => {
     const schedule = convertToCronSchedule(day, hour - 1, minute);
     manager.add("req")
     const task = cron.schedule(schedule, async () => {
-      console.log("every second");
       try {
         // post request to /api/meetings/
         const newMeeting = new Meeting({
@@ -66,7 +65,6 @@ module.exports = async (req, res, next) => {
 
         await newMeeting.save();
       } catch (err) {
-        console.log(err);
         const error = new HttpError(err.message, 500);
         return next(error);
       }
@@ -74,16 +72,12 @@ module.exports = async (req, res, next) => {
 
     const currentDate = new Date();
     setTimeout(() => {
-      console.log("timeout");
       task.stop();
     }, dateEnd - currentDate);
-    console.log(JSON.stringify(task, null, 2));
   } else {
     const schedule = convertToCronSchedule(day, hour - 1, minute);
-    // const task = cron.schedule(schedule, async () => {
-    const task = cron.schedule("* * * * * *", async () => {
+    const task = cron.schedule(schedule, async () => {
       try {
-        console.log("creating meeting");
         // post request to /api/meetings/
         const newMeeting = new Meeting({
           division,
@@ -91,7 +85,6 @@ module.exports = async (req, res, next) => {
         });
         await newMeeting.save();
       } catch (err) {
-        console.log(err);
         const error = new HttpError(err.message, 500);
         return next(error);
       }

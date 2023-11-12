@@ -3,7 +3,6 @@ const HttpError = require("../models/http-error");
 
 module.exports = (req, res, next) => {
   if(req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request")
     return next();
   }
 
@@ -20,7 +19,6 @@ module.exports = (req, res, next) => {
       email: decodedToken.email,
       isAdmin: decodedToken.isAdmin,
     };
-    console.log("Auth success")
 
     req.userData.id = decodedToken.userId;
     next();
