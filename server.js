@@ -9,6 +9,8 @@ const apiUserRouter = require("./routes/api-user-routes.js");
 const apiMeetingRouter = require("./routes/api-meeting-routes.js");
 const HttpError = require("./models/http-error");
 
+require("dotenv").config();
+
 const port = 5000;
 
 // Handle CORS error
@@ -53,7 +55,8 @@ app.use((error, req, res, next) => {
 mongoose
   .connect(
     `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.plqxwwn.mongodb.net/?retryWrites=true&w=majority`
-  )
+    // "mongodb+srv://carlioseryan20:281003car@cluster0.plqxwwn.mongodb.net/"
+    )
   .then(() => {
     app.listen(port, () => {
       console.log(`http://localhost:${port}`);

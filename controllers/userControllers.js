@@ -131,7 +131,7 @@ const signup = async (req, res, next) => {
         email: createdUser.email,
         isAdmin: createdUser.role === "admin",
       },
-      process.env.JWT_KEY
+      process.env.JWT_KEY,
       { expiresIn: "100000h" }
     );
   } catch (err) {
@@ -192,37 +192,7 @@ const getUserById = async (req, res, next) => {
 
   // Try to fetch user by id
   try {
-    user = await User.findOne({ _id: id }, "-password").aggregate([
-      {
-        $lookup: {
-          from: "usermeetings",
-          localField: "_id",
-          foreignField: "user",
-          as: "meetings",
-        },
-      },
-      {
-        $addFields: {
-          "totalMeetingsAttended": { $size: "$meetings" },
-          "totalLateMeetingsAttended": {
-            $sum: {
-              $map: {
-                input: "$meetings",
-                as: "meeting",
-                in: {
-                  $cond: {
-                    if: { $gt: ["$$meeting.lateTime", 0] },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
-            },
-          },
-        },
-        
-      },
-    ]);
+    user = await User.findOne({ _id: id }, "-password")
   } catch (err) {
     const error = new HttpError(err.message, 500);
     return next(error);
